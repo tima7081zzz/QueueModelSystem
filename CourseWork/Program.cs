@@ -6,8 +6,8 @@ public class ClientRequest
 {
     public int Id { get; set; }
     public bool IsNeedToRepairDetails { get; set; }
-    public DateTime CreatedTime { get; set; }
-    public DateTime? ProcessedTime { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? ProcessedAt { get; set; }
 }
 
 public class IdGenerator
@@ -32,24 +32,30 @@ public class RequestGenerator
         _idGenerator = idGenerator;
     }
 
-    public async Task GenerateRequests(double repairDetailsPercentage, CancellationToken ct)
+    public async Task GenerateRequests(double percentage, bool isNeedToRepair, CancellationToken ct)
     {
         var rnd = new Random();
 
         while (!ct.IsCancellationRequested)
         {
+            if (rnd.Next(100) > percentage)
+            {
+                await Task.Delay(500, ct);
+                continue;
+            }
+
             var request = new ClientRequest
             {
                 Id = _idGenerator.Generate(),
-                IsNeedToRepairDetails = rnd.Next(100) < repairDetailsPercentage,
-                CreatedTime = DateTime.Now,
+                IsNeedToRepairDetails = isNeedToRepair,
+                CreatedAt = DateTime.Now,
             };
 
             ClientRequestLogger.RequestCreated(request);
             _queueRegular.Enqueue(request);
             _generatedRequests.Add(request);
 
-            await Task.Delay(250, ct);
+            await Task.Delay(500, ct);
         }
     }
 
@@ -90,10 +96,9 @@ public class RegularQueue
                 continue;
             }
 
-            //ProcessingImitation
-            await Task.Delay(500, CancellationToken.None);
+            await Task.Delay(new Random().Next(300, 500), CancellationToken.None); //Processing Imitation
 
-            request.ProcessedTime = DateTime.Now;
+            request.ProcessedAt = DateTime.Now;
 
             _processedRequests.Add(request);
             ClientRequestLogger.RequestProcessedRegularQueue(request);
@@ -138,10 +143,9 @@ public class AdditionalServiceQueue
                 continue;
             }
 
-            //ProcessingImitation
-            await Task.Delay(700, CancellationToken.None);
+            await Task.Delay(new Random().Next(500, 700), CancellationToken.None); //Processing Imitation
 
-            request.ProcessedTime = DateTime.Now;
+            request.ProcessedAt = DateTime.Now;
 
             ClientRequestLogger.RequestProcessedAdditionalServiceQueue(request);
             _processedRequests.Add(request);
@@ -213,8 +217,8 @@ public static class ClientRequestLogger
         }
 
         var averageTicks = requests
-            .Where(x => x.ProcessedTime.HasValue)
-            .Select(x => x.ProcessedTime!.Value.Ticks - x.CreatedTime.Ticks)
+            .Where(x => x.ProcessedAt.HasValue)
+            .Select(x => x.ProcessedAt!.Value.Ticks - x.CreatedAt.Ticks)
             .Average();
 
         return new TimeSpan(Convert.ToInt64(averageTicks));
@@ -238,7 +242,8 @@ internal static class Program
 
         var programTasks = new List<Task>
         {
-            Task.Run(() => requestsGenerator.GenerateRequests(repairDetailsPercentage, ct), ct)
+            Task.Run(() => requestsGenerator.GenerateRequests(repairDetailsPercentage, true, ct), ct),
+            Task.Run(() => requestsGenerator.GenerateRequests(100 - repairDetailsPercentage, false, ct), ct)
         };
 
         for (var i = 0; i < numberOfChannels; i++)
