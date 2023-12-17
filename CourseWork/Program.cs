@@ -187,17 +187,26 @@ public static class ClientRequestLogger
         IList<ClientRequest> processedRegular,
         IList<ClientRequest> processedAdditionalService)
     {
+        var generatedRegularCount = generated.Count(x => !x.IsNeedToRepairDetails);
+        var generatedAdditionalServiceCount = generated.Count(x => x.IsNeedToRepairDetails);
+
         Console.ForegroundColor = ConsoleColor.Cyan;
         Console.WriteLine("\n\n--- GENERATED COUNT ---" +
                           $"\nTotal: {generated.Count}" +
-                          $"\nRegular: {generated.Count(x => !x.IsNeedToRepairDetails)}" +
-                          $"\nAdditionalService: {generated.Count(x => x.IsNeedToRepairDetails)}");
+                          $"\nRegular: {generatedRegularCount}" +
+                          $"\nAdditionalService: {generatedAdditionalServiceCount}");
         Console.ResetColor();
 
         Console.ForegroundColor = ConsoleColor.DarkGreen;
         Console.WriteLine("\n\n--- PROCESSED COUNT ---" +
                           $"\nRegular: {processedRegular.Count}" +
                           $"\nAdditionalService: {processedAdditionalService.Count}");
+        Console.ResetColor();
+
+        Console.ForegroundColor = ConsoleColor.DarkRed;
+        Console.WriteLine("\n\n--- DECLINED COUNT ---" +
+                          $"\nRegular: {generatedRegularCount}" +
+                          $"\nAdditionalService: {generatedAdditionalServiceCount}");
         Console.ResetColor();
 
         Console.ForegroundColor = ConsoleColor.Magenta;
@@ -275,7 +284,7 @@ internal static class Program
         Console.Write("\nEnter regular clients percentage: ");
         var repairDetailsPercentage = double.Parse(Console.ReadLine()!);
 
-        Console.Write("\nEnter number of processing servers: ");
+        Console.Write("\nEnter number of processing channels: ");
         var numberOfChannels = int.Parse(Console.ReadLine()!);
 
         var ct = new CancellationTokenSource(simulationTimeSeconds).Token;
