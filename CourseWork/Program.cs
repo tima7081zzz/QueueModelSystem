@@ -40,7 +40,7 @@ public class RequestGenerator
         {
             if (rnd.Next(100) > percentage)
             {
-                await Task.Delay(500, ct);
+                await Task.Delay(300, ct);
                 continue;
             }
 
@@ -55,7 +55,7 @@ public class RequestGenerator
             _queueRegular.Enqueue(request);
             _generatedRequests.Add(request);
 
-            await Task.Delay(500, ct);
+            await Task.Delay(300, ct);
         }
     }
 
@@ -197,16 +197,21 @@ public static class ClientRequestLogger
                           $"\nAdditionalService: {generatedAdditionalServiceCount}");
         Console.ResetColor();
 
+        var processedOnlyRegularCount = processedRegular.Count(x => !x.IsNeedToRepairDetails);
         Console.ForegroundColor = ConsoleColor.DarkGreen;
         Console.WriteLine("\n\n--- PROCESSED COUNT ---" +
-                          $"\nRegular: {processedRegular.Count}" +
+                          $"\nTotal: {processedOnlyRegularCount + processedAdditionalService.Count}" +
+                          $"\nRegular: {processedOnlyRegularCount}" +
                           $"\nAdditionalService: {processedAdditionalService.Count}");
         Console.ResetColor();
 
+        var declinedRegularCount = generatedRegularCount - processedOnlyRegularCount;
+        var declinedAdditionalServiceCount = generatedAdditionalServiceCount - processedAdditionalService.Count;
         Console.ForegroundColor = ConsoleColor.DarkRed;
         Console.WriteLine("\n\n--- DECLINED COUNT ---" +
-                          $"\nRegular: {generatedRegularCount}" +
-                          $"\nAdditionalService: {generatedAdditionalServiceCount}");
+                          $"\nTotal: {declinedRegularCount + declinedAdditionalServiceCount}" +
+                          $"\nRegular: {declinedRegularCount}" +
+                          $"\nAdditionalService: {declinedAdditionalServiceCount}");
         Console.ResetColor();
 
         Console.ForegroundColor = ConsoleColor.Magenta;
